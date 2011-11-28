@@ -14,7 +14,7 @@
 #                is connected.
 # FUSES ........ Parameters for avrdude to flash the fuses appropriately.
 
-DEVICE     = atmega8515
+DEVICE     = attiny2313
 CLOCK      = 8000000
 PROGRAMMER = -c stk500v2 -P avrdoper
 OBJECTS    = main.o lib_rdm_in.o

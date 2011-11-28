@@ -8,15 +8,23 @@
 
 #include "lib_rdm_in.h"
 
+#define LED1_COMPARE         OCR0B
+#define LED2_COMPARE         OCR1BL
+#define LED3_COMPARE         OCR1AL
+
 int main(void)
 {
     cli();
-    DDRA  = 0xFF;
-    PORTA = 0;
-    DDRD |= (1<<PD7);					//red LED pin is output
-    DDRE |= (1<<PE0);					//green LED is output
-    DDRC=  0;							//use DIPs for device addressing
-    PORTC= 0xFF;
+    
+    //8 bit phase corrected PWM
+    TCCR0A = (1<<COM0A1) | (1<<WGM00 );
+    TCCR1A = (1<<COM1A1) | (1<<COM1B1) | (1<<WGM10 );
+    TCCR0B = (1<<CS00);
+    TCCR1B = (1<<CS10);
+    
+    //PWM Ports are outputs
+    DDRB |= (1<<DDB2) | (1<<DDB3) | (1<<DDB4);
+    
     init_RDM();
     Flags= 0;
     sei();
@@ -25,14 +33,10 @@ int main(void)
         if (Flags &(1<<EVAL_DMX))		//universe complete?
 		{
             Flags &= ~(1<<EVAL_DMX);	//clear flag
-            if (DmxField[0] >= 127)		//enable LED if 1st DMX val is >127
-			{
-           //     PORTD &= ~(1<<PD7);		//LED ON
-			}
-            else
-			{
-            //    PORTD |= (1<<PD7);		//LED OFF
-			}
+            
+            LED1_COMPARE = DmxField[0];
+            LED2_COMPARE = DmxField[1];
+            LED3_COMPARE = DmxField[2];
 		}
         check_rdm();			//check for new RDM packets
 	}

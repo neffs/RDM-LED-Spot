@@ -135,7 +135,7 @@ PORTD &= ~(1<<2);											//enable reception
 PORTD |= (1<<1);
 UBRRH  = 0;
 UBRRL  = ((F_OSC/4000)-1);									//250kbaud, 8N2
-UCSRC  = (1<<URSEL)|(3<<UCSZ0)|(1<<USBS);
+UCSRC  = (3<<UCSZ0)|(1<<USBS);
 UCSRB  = (1<<RXEN)|(1<<RXCIE);
 RxState= IDLE;
 
@@ -429,7 +429,7 @@ if (RdmFlags &(1<<EVAL_RDM))
 
 
 // *************** DMX & RDM Reception ISR ****************
-ISR (UART_RX_vect)
+ISR (USART_RX_vect)
 {
 uint8_t Temp= UCSRA;										//get state
 uint8_t DmxByte= UDR;										//get data
@@ -532,7 +532,7 @@ else switch (RxState)
 
 // *************** RDM Response ISR ****************
 
-ISR (UART_TX_vect)
+ISR (USART_TX_vect)
 {
 _delay_us(5);
 uint8_t TxCh= gTxCh;
@@ -547,7 +547,7 @@ else
 	{
 	if (TxCh > (RdmField[2]+1))
 		{
-		PORTD ^= (1<<PD7);									//LED: responding
+		//PORTD ^= (1<<PD7);									//LED: responding
 		RxState= IDLE;    				   					//wait for break
 		UCSRB  = (1<<RXEN)|(1<<RXCIE);
 		sei();												//allow interrupts in delay
