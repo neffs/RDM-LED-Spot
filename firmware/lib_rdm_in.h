@@ -29,9 +29,19 @@ struct RDM_Packet	{
 #define UID_2 0x56
 #define UID_3 0x88
 #define UID_4 0x00
-#define UID_5 0x00
+#define UID_5 0x01
 
-#define F_OSC		    (8000)		  			//oscillator freq. in kHz (typical 16MHz or 16MHz)
+//#define F_OSC		    (16000)		  			//oscillator freq. in kHz (typical 8MHz or 16MHz)
+
+#define BAUD 250000L		// DMX512         
+#define BAUD_BRK 45500L		// BRK          
+
+
+#define UBRR_VAL  ((F_CPU+BAUD*8)/(BAUD*16)-1)
+#define UBRR_BRK_VAL  ((F_CPU+BAUD_BRK*8)/(BAUD_BRK*16)-1)
+
+
+
 
 enum {EVAL_DMX, DO_IDENTIFY};					//main flags
 

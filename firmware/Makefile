@@ -15,7 +15,7 @@
 # FUSES ........ Parameters for avrdude to flash the fuses appropriately.
 
 DEVICE     = attiny2313
-CLOCK      = 8000000
+CLOCK      = 16000000
 PROGRAMMER = -c stk500v2 -P avrdoper
 OBJECTS    = main.o lib_rdm_in.o
 FUSES      = -U hfuse:w:0xd9:m -U lfuse:w:0x24:m

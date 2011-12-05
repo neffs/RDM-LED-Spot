@@ -24,7 +24,7 @@
  For other license models, please contact the author.
 
 ;***************************************************************************/
-
+ 
 
 #include "lib_rdm_in.h"
 
@@ -133,8 +133,11 @@ if (DmxAddress > 512) DmxAddress= 1;
 DDRD  |= (1<<2)|(1<<1);
 PORTD &= ~(1<<2);											//enable reception
 PORTD |= (1<<1);
-UBRRH  = 0;
-UBRRL  = ((F_OSC/4000)-1);									//250kbaud, 8N2
+//UBRRH  = 0;
+//UBRRL  = ((F_OSC/4000)-1);									//250kbaud, 8N2
+    UBRRH = UBRR_VAL >> 8;
+    UBRRL = UBRR_VAL & 0xFF;
+    
 UCSRC  = (3<<UCSZ0)|(1<<USBS);
 UCSRB  = (1<<RXEN)|(1<<RXCIE);
 RxState= IDLE;
@@ -235,7 +238,10 @@ if (rdm->DestID[0] != 0xFF)								//don't respond to bradcasts!!
 	RdmField[rdm->Length]= cs.u8h;
 	RdmField[rdm->Length +1]= cs.u8l;
 
-	UBRRL  = (F_OSC/800);								//45.5 kbaud
+        
+        UBRRH = UBRR_BRK_VAL >> 8;
+        UBRRL = UBRR_BRK_VAL & 0xFF;
+	//UBRRL  = (F_OSC/800);								//45.5 kbaud
 	gTxCh  = 0;											//reset field pointer
 	UCSRB  = (1<<TXEN)|(1<<TXCIE);
 	UDR    = 0;											//send break
@@ -248,9 +254,9 @@ void respondDisc(void)
 {
 if (!(RdmFlags &(1<<MUTE_RDM)))
 	{
-	UBRRH	= 0;
-	UBRRL   = ((F_OSC/4000)-1);								//250kbaud
-	UCSRB   = (1<<TXEN);
+        UBRRH = UBRR_VAL >> 8;
+        UBRRL = UBRR_VAL & 0xFF;
+        UCSRB   = (1<<TXEN);
 	
 	_delay_us(70);
 	_delay_us(70);
@@ -539,8 +545,9 @@ uint8_t TxCh= gTxCh;
 
 if (TxCh == 0)
 	{
-	UBRRL  = ((F_OSC/4000)-1);								//250kbaud
-	UDR    = 0xCC;											//send alternate start code
+        UBRRH = UBRR_VAL >> 8;
+        UBRRL = UBRR_VAL & 0xFF;
+        UDR    = 0xCC;											//send alternate start code
 	gTxCh= 1;
 	}
 else
