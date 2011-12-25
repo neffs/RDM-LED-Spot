@@ -24,21 +24,14 @@ struct RDM_Packet	{
 };
 
 
-#define UID_0 0x12																					//ESTA device ID
-#define UID_1 0x34
-#define UID_2 0x56
-#define UID_3 0x88
-#define UID_4 0x00
-#define UID_5 0x01
+#define UID_0 0x12								//ESTA device ID High Byt
+#define UID_1 0x34								//ESTA device ID Low Byt
+#define UID_2 0x56								//Device ID 3 Byt
+#define UID_3 0x88								//Device ID 2 Byt
+#define UID_4 0x00								//Device ID 1 Byt
+#define UID_5 0x01								//Device ID 0 Byt
 
-//#define F_OSC		    (16000)		  			//oscillator freq. in kHz (typical 8MHz or 16MHz)
-
-#define BAUD 250000L		// DMX512         
-#define BAUD_BRK 45500L		// BRK          
-
-
-#define UBRR_VAL  ((F_CPU+BAUD*8)/(BAUD*16)-1)
-#define UBRR_BRK_VAL  ((F_CPU+BAUD_BRK*8)/(BAUD_BRK*16)-1)
+#define F_OSC		    (16000)		  			//oscillator freq. in kHz (typical 8MHz or 16MHz)
 
 
 
@@ -99,6 +92,8 @@ extern void    check_rdm(void);
 #define MANUFACT_LABEL          (0x0081)
 #define DMX_START_ADDRESS		(0x00F0)	//DMX setup
 #define SLOT_INFO               (0x0120)
+#define LAMP_HOURS              (0x0401)
+#define DEVICE_HOURS            (0x0400)
 
 //status types
 #define STATUS_NONE				(0x00)		//not in queued msgs

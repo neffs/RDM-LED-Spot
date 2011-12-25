@@ -52,7 +52,7 @@ volatile uint8_t	 RdmFlags=0;
 		 uint8_t     RxCount_8;							//byte counting
 volatile uint16_t	 DmxAddress;
 
-volatile uint8_t	 gTxCh;								//current channel to be transmitted
+volatile uint8_t	 gTxCh=0;								//current channel to be transmitted
 
 
 const uint8_t DiscRespMsg[] PROGMEM = {				//discovery response msg
@@ -78,8 +78,8 @@ const uint8_t DiscRespMsg[] PROGMEM = {				//discovery response msg
 const uint8_t InfoMsg[] PROGMEM = {					   //device info msg
 1, 0,														//RDM protocol version
 1, 0, 														//device model ID
-(FIXT_FIXED>>8),											//fixture type
-(FIXT_FIXED &0xFF),
+(FIXT_DIM_LED>>8),											//fixture type
+(FIXT_DIM_LED &0xFF),
 0, 0, 1, 1,													//firmware version
 0, sizeof(DmxField),										//DMX footprint
 1, 1,														//current DMX personality				
@@ -130,13 +130,11 @@ void init_RDM(void)
 DmxAddress= eeprom_read_word((uint16_t*)1);
 if (DmxAddress > 512) DmxAddress= 1;
 
-DDRD  |= (1<<2)|(1<<1);
-PORTD &= ~(1<<2);											//enable reception
-PORTD |= (1<<1);
-//UBRRH  = 0;
-//UBRRL  = ((F_OSC/4000)-1);									//250kbaud, 8N2
-    UBRRH = UBRR_VAL >> 8;
-    UBRRL = UBRR_VAL & 0xFF;
+DDRD  |= (1<<PD2)|(1<<PD1);
+PORTD &= ~(1<<PD2);											//enable reception
+PORTD |= (1<<PD1);
+UBRRH  = 0;
+UBRRL  = ((F_OSC/4000)-1);									//250kbaud, 8N2
     
 UCSRC  = (3<<UCSZ0)|(1<<USBS);
 UCSRB  = (1<<RXEN)|(1<<RXCIE);
@@ -237,11 +235,7 @@ if (rdm->DestID[0] != 0xFF)								//don't respond to bradcasts!!
 		}
 	RdmField[rdm->Length]= cs.u8h;
 	RdmField[rdm->Length +1]= cs.u8l;
-
-        
-        UBRRH = UBRR_BRK_VAL >> 8;
-        UBRRL = UBRR_BRK_VAL & 0xFF;
-	//UBRRL  = (F_OSC/800);								//45.5 kbaud
+	UBRRL  = (F_OSC/800);								//45.5 kbaud
 	gTxCh  = 0;											//reset field pointer
 	UCSRB  = (1<<TXEN)|(1<<TXCIE);
 	UDR    = 0;											//send break
@@ -254,14 +248,14 @@ void respondDisc(void)
 {
 if (!(RdmFlags &(1<<MUTE_RDM)))
 	{
-        UBRRH = UBRR_VAL >> 8;
-        UBRRL = UBRR_VAL & 0xFF;
+		UBRRH  = 0;
+		UBRRL  = ((F_OSC/4000)-1);	
         UCSRB   = (1<<TXEN);
 	
 	_delay_us(70);
 	_delay_us(70);
 
-	PORTD  |= (1<<2);										//enable transmission
+	PORTD  |= (1<<PD2);										//enable transmission
 	uint8_t i;
 	for(i=0;i<24;i++) 
 		{
@@ -271,11 +265,8 @@ if (!(RdmFlags &(1<<MUTE_RDM)))
 		loop_until_bit_is_set(UCSRA, TXC);					//send response
 		}
 	RxState= IDLE;    				   						//wait for break
-	PORTD &= ~(1<<2);										//enable reception
+	PORTD &= ~(1<<PD2);										//enable reception
 	UCSRB  = (1<<RXEN)|(1<<RXCIE);
-	#ifdef DEBUG
- 	PORTA ^= (1<<PA4);										//LED: transmitting discovery response
-	#endif	
 	}
 }
 
@@ -289,16 +280,12 @@ if (RdmFlags &(1<<EVAL_RDM))
 	rdm = (struct RDM_Packet *)&RdmField;
 	if (forUs() == 0) 										//is packet for us?
 		{
-		//PORTE ^= (1<<PE0);									//LED: receiving RDM packet
 		rdm->PortID= RESPONSE_TYPE_ACK;
 		switch(swapInt(rdm->PID))
 			{
 			case DISC_UNIQUE_BRANCH:
 				if((isLower() == 0) && (isHigher() == 0))	//is UID in disc branch?
 					{
-					   #ifdef DEBUG
- 		   			   PORTA ^= (1<<PA3);					//LED: transmitting discovery response
-		               #endif
 					respondDisc();							//answer discovery msg
 					}
 				break;				
@@ -309,9 +296,6 @@ if (RdmFlags &(1<<EVAL_RDM))
 				rdm->Data[1]= 0;
 				rdm->PDLen= 2;
 				respondMsg();								//ACK
-				   #ifdef DEBUG
- 		           PORTA |= (1<<PA4);						//LED: muted
-		           #endif
 				break;
 
 			case DISC_UN_MUTE:								//we shall respond again
@@ -320,9 +304,6 @@ if (RdmFlags &(1<<EVAL_RDM))
 				rdm->Data[1]= 0;
 				rdm->PDLen= 2;
 				respondMsg();								//ACK
-				   #ifdef DEBUG
- 		           PORTA &= ~(1<<PA4);						//LED: unmuted
-		           #endif
 				break;
 
 			case IDENTIFY:									//we shall respond again								
@@ -349,6 +330,7 @@ if (RdmFlags &(1<<EVAL_RDM))
 					uint16or8 AdrBuf;
 					AdrBuf.u8h= rdm->Data[0];
 					AdrBuf.u8l= rdm->Data[1];
+					if(AdrBuf.u16 > 512) AdrBuf.u16 = DmxAddress; //dmx adress Overflow protection
 					DmxAddress= AdrBuf.u16;					//change address
 					eeprom_write_word((uint16_t*)1, AdrBuf.u16);
 					}
@@ -382,6 +364,7 @@ if (RdmFlags &(1<<EVAL_RDM))
 					}
 				else
 					{
+					if(eeprom_read_byte((uint8_t*)3) > 32)eeprom_write_byte((uint8_t*)3 , 0); //prevention for blank eeprom 
 					rdm->PDLen= eeprom_read_byte((uint8_t*)3);
 					eeprom_read_block(rdm->Data, (uint16_t*)4, rdm->PDLen); //response with device label
 					}
@@ -417,6 +400,28 @@ if (RdmFlags &(1<<EVAL_RDM))
 				rdm->PDLen= sizeof(ParamMsg);
 				respondMsg();
 				break;
+				
+// 			case DEVICE_HOURS:
+//  					{
+// 					rdm->PDLen= 4;
+//  					rdm->Data[3]=eeprom_read_byte((uint8_t*)41);
+//  					rdm->Data[2]=eeprom_read_byte((uint8_t*)42);
+//  					rdm->Data[1]=eeprom_read_byte((uint8_t*)43);
+//  					rdm->Data[0]=eeprom_read_byte((uint8_t*)44); //response with device label
+//  					}
+//  				respondMsg();
+//  				break;
+				
+// 			case LAMP_HOURS:
+// 					{
+// 					rdm->PDLen= 4;
+// 					rdm->Data[3]=eeprom_read_byte((uint8_t*)37);
+// 					rdm->Data[2]=eeprom_read_byte((uint8_t*)38);
+// 					rdm->Data[1]=eeprom_read_byte((uint8_t*)39);
+// 					rdm->Data[0]=eeprom_read_byte((uint8_t*)40); //response with device label
+// 					}
+// 				respondMsg();
+// 				break;
 
 			default:
 				rdm->Data[0]=  (uint8_t)(NR_UNKNOWN_PID>>8); //response: PID not supported!
@@ -488,9 +493,6 @@ else switch (RxState)
 			{
 			RxState= SSC_RDM; 				   				//valid sub start code identified and buffer free
 			RxCount_8= 3;
-			  #ifdef DEBUG
- 			  PORTA ^= (1<<PA0);							//LED: correct start of RDM packet
-			  #endif
 			}
 		else RxState= IDLE;    				   				//error
 		break;
@@ -500,10 +502,7 @@ else switch (RxState)
 		if (DmxByte < sizeof(RdmField))
 			 {
 			 RxCount_16.u16= (uint16_t)(0xCD +DmxByte); 	//initialize check sum
-			 RxState= LEN_RDM;
-			 	#ifdef DEBUG
- 			    PORTA ^= (1<<PA1);							//LED: size of RdmField is sufficient
-			    #endif					
+			 RxState= LEN_RDM;				
 			 }
 		else RxState= IDLE;					   				//reset if too much data!
 		break;
@@ -525,9 +524,6 @@ else switch (RxState)
 	case CHECKL_RDM:
 		if (DmxByte == RxCount_16.u8l)
 			{
-		       #ifdef DEBUG
- 		       PORTA ^= (1<<PA2);							//LED: valid check sum
-		       #endif
 			RdmFlags |= (1<<EVAL_RDM);						//valid RDM packet received
 			}
 		RxState= IDLE;
@@ -545,8 +541,8 @@ uint8_t TxCh= gTxCh;
 
 if (TxCh == 0)
 	{
-        UBRRH = UBRR_VAL >> 8;
-        UBRRL = UBRR_VAL & 0xFF;
+		UBRRH  = 0;
+		UBRRL  = ((F_OSC/4000)-1);	
         UDR    = 0xCC;											//send alternate start code
 	gTxCh= 1;
 	}
@@ -554,12 +550,11 @@ else
 	{
 	if (TxCh > (RdmField[2]+1))
 		{
-		//PORTD ^= (1<<PD7);									//LED: responding
 		RxState= IDLE;    				   					//wait for break
 		UCSRB  = (1<<RXEN)|(1<<RXCIE);
 		sei();												//allow interrupts in delay
 		_delay_us(18);
-		PORTD &= ~(1<<2);									//enable reception
+		PORTD &= ~(1<<PD2);									//enable reception
 		}
 	else
 		{
