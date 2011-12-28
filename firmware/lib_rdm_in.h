@@ -23,7 +23,7 @@ struct RDM_Packet	{
 	uint8_t  Data[24];							//data byte field
 };
 
-
+//Default UID;
 #define UID_0 0x12								//ESTA device ID High Byt
 #define UID_1 0x34								//ESTA device ID Low Byt
 #define UID_2 0x56								//Device ID 3 Byt
@@ -31,9 +31,7 @@ struct RDM_Packet	{
 #define UID_4 0x00								//Device ID 1 Byt
 #define UID_5 0x01								//Device ID 0 Byt
 
-#define F_OSC		    (16000)		  			//oscillator freq. in kHz (typical 8MHz or 16MHz)
-
-
+#define F_OSC		    F_CPU/1000		  			//oscillator freq. in kHz (typical 8MHz or 16MHz)
 
 
 enum {EVAL_DMX, DO_IDENTIFY};					//main flags
@@ -44,6 +42,19 @@ volatile uint8_t	 RdmField[50];				//array of RDM control data (raw)
 
 extern void    init_RDM(void);
 extern void    check_rdm(void);
+
+
+#define EEPROM_STATUS 0         // 1 byte, set to 0 if eeprom valid
+#define EEPROM_DEVICE_ID 1      // 6 bytes
+#define EEPROM_DMX_ADDRESS 7    // 2 bytes
+#define EEPROM_LABEL_LEN 9      
+#define EEPROM_LABEL 10         // 32 bytes
+#define EEPROM_LAMP_HOURS 42    // 4 bytes
+#define EEPROM_DEVICE_HOURS 46  // 4 bytes
+
+
+
+
 
 
 

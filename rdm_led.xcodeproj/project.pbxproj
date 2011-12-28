@@ -54,6 +54,9 @@
 /* Begin PBXProject section */
 		4079523D0CEA382200E202DC /* Project object */ = {
 			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0420;
+			};
 			buildConfigurationList = 4079523E0CEA382200E202DC /* Build configuration list for PBXProject "rdm_led" */;
 			compatibilityVersion = "Xcode 2.4";
 			developmentRegion = English;
