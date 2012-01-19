@@ -1,3 +1,5 @@
+#define F_CPU 16000000
+
 #include <avr/io.h>
 #include <stdint.h>
 #include <avr/interrupt.h>
@@ -29,7 +31,7 @@ struct RDM_Packet	{
 #define UID_2 0x56								//Device ID 3 Byt
 #define UID_3 0x88								//Device ID 2 Byt
 #define UID_4 0x00								//Device ID 1 Byt
-#define UID_5 0x01								//Device ID 0 Byt
+#define UID_5 0x02								//Device ID 0 Byt
 
 #define F_OSC		    F_CPU/1000		  			//oscillator freq. in kHz (typical 8MHz or 16MHz)
 

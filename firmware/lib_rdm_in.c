@@ -7,6 +7,7 @@
 * Clock			: 8MHz, 16MHz
 *
 * written by hendrik hoelscher, www.hoelscher-hi.de
+* edit by Markus Bechtold Markus@r-bechtold.de
 ***************************************************************************
  This program is free software; you can redistribute it and/or 
  modify it under the terms of the GNU General Public License 
@@ -55,15 +56,6 @@ volatile uint16_t	 DmxAddress;
 volatile uint8_t	 gTxCh=0;								//current channel to be transmitted
 
 
-/*const uint8_t DiscRespMsg[] PROGMEM = {				//discovery response msg
-0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xAA,			//preamble
-0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55,
-0xAA, 0x55, 0xAA, 0x55, //UID will by applied on the fly
-((UID_CS>>8) |0xAA),
-((UID_CS>>8) |0x55),
-((UID_CS &0xFF) |0xAA),
-((UID_CS &0xFF) |0x55)
-};*/
 
 const uint8_t InfoMsg[] PROGMEM = {					   //device info msg
 1, 0,														//RDM protocol version
@@ -78,7 +70,7 @@ const uint8_t InfoMsg[] PROGMEM = {					   //device info msg
 0															//no of sensors
 };
 
-const char ManufacturerLabel[] PROGMEM = {'D','a','v','i','d'};
+const char ManufacturerLabel[] PROGMEM = {'M','a','r','k','u','s','B','e','c'};
 
 const uint8_t ProductDetail[] PROGMEM = {0x04, 0x00}; //LED
 
@@ -100,17 +92,18 @@ const uint8_t ParamMsg[] PROGMEM = {						//supported parameters msg
 (DEVICE_LABEL>>8),		 (DEVICE_LABEL &0xFF),
 (MANUFACT_LABEL>>8),		 (MANUFACT_LABEL &0xFF),
 (DMX_START_ADDRESS>>8),	(DMX_START_ADDRESS &0xFF),
-(STATUS_MESSAGES>>8),	(STATUS_MESSAGES &0xFF)
+(STATUS_MESSAGES>>8),	(STATUS_MESSAGES &0xFF),
+(LAMP_HOURS>>8),	(LAMP_HOURS &0xFF)
 };
 
 
-/*const uint8_t StatusMsg[] PROGMEM = {
+const uint8_t StatusMsg[] PROGMEM = {
 0, 0,														//sub device ID
 STATUS_NONE, 0,												//device state
 STS_READY,													//error ID
 (SD_UNDEFINED>>8), (SD_UNDEFINED &0xFF),  					//Parameter 1
 0, 0														//Parameter 2
-};*/
+};
 
 
 
@@ -119,9 +112,9 @@ void init_RDM(void)
 {
     if (!eeprom_read_byte((uint8_t*)EEPROM_STATUS)) {
         //use DevID from EEPROM if set
-        DmxAddress= eeprom_read_word((uint16_t*)EEPROM_DMX_ADDRESS);
         eeprom_read_block(&DevID, (uint16_t*)EEPROM_DEVICE_ID, 6);
     }
+	DmxAddress= eeprom_read_word((uint16_t*)EEPROM_DMX_ADDRESS);
     //moved from check_RDM, doesn't need to be done every time label i s read
     if(eeprom_read_byte((uint8_t*)EEPROM_LABEL_LEN) > 32)
         eeprom_write_byte((uint8_t*)EEPROM_LABEL_LEN , 0);
@@ -346,6 +339,7 @@ void check_rdm(void)
 						AdrBuf.u8h= rdm->Data[0];
 						AdrBuf.u8l= rdm->Data[1];
 						if(AdrBuf.u16 > 512) AdrBuf.u16 = DmxAddress; //dmx adress Overflow protection
+						if(AdrBuf.u16 == 0) AdrBuf.u16 = DmxAddress;
 						DmxAddress= AdrBuf.u16;					//change address
 						eeprom_write_word((uint16_t*)EEPROM_DMX_ADDRESS, AdrBuf.u16);
 					}
@@ -403,39 +397,47 @@ void check_rdm(void)
 					respondMsg();
 					break;  
 
-	/*			case STATUS_MESSAGES:
-					memcpy_P(&(rdm->Data),StatusMsg, sizeof(StatusMsg));
-					rdm->PDLen= 9;
-					respondMsg();
-					break;
-*/
-				case SUPPORTED_PARAMETERS:
+ 			case STATUS_MESSAGES:
+ 					memcpy_P(&(rdm->Data),StatusMsg, sizeof(StatusMsg));
+ 					rdm->PDLen= 9;
+ 					respondMsg();
+ 					break;
+					
+			case SUPPORTED_PARAMETERS:
 					memcpy_P(&(rdm->Data),ParamMsg, sizeof(ParamMsg));
 					rdm->PDLen= sizeof(ParamMsg);
 					respondMsg();
 					break;
 				
-	// 			case DEVICE_HOURS:
-	//  					{
-	// 					rdm->PDLen= 4;
-	//  					rdm->Data[3]=eeprom_read_byte((uint8_t*)EEPROM_DEVICE_HOURS);
-	//  					rdm->Data[2]=eeprom_read_byte((uint8_t*)EEPROM_DEVICE_HOURS+1);
-	//  					rdm->Data[1]=eeprom_read_byte((uint8_t*)EEPROM_DEVICE_HOURS+2);
-	//  					rdm->Data[0]=eeprom_read_byte((uint8_t*)EEPROM_DEVICE_HOURS+3); //response with device label
-	//  					}
-	//  				respondMsg();
-	//  				break;
+				case DEVICE_HOURS:
+  					{
+					rdm->PDLen= 4; 					
+					rdm->Data[3]=eeprom_read_byte((uint8_t*)EEPROM_DEVICE_HOURS);
+	  				rdm->Data[2]=eeprom_read_byte((uint8_t*)EEPROM_DEVICE_HOURS+1);
+	  				rdm->Data[1]=eeprom_read_byte((uint8_t*)EEPROM_DEVICE_HOURS+2);
+	  				rdm->Data[0]=eeprom_read_byte((uint8_t*)EEPROM_DEVICE_HOURS+3); //response with device label
+	  				}
+	  				respondMsg();
+		  			break;
 				
-	// 			case LAMP_HOURS:
-	// 					{
-	// 					rdm->PDLen= 4;
-	// 					rdm->Data[3]=eeprom_read_byte((uint8_t*)EEPROM_LAMP_HOURS);
-	// 					rdm->Data[2]=eeprom_read_byte((uint8_t*)EEPROM_LAMP_HOURS+1);
-	// 					rdm->Data[1]=eeprom_read_byte((uint8_t*)EEPROM_LAMP_HOURS+2);
-	// 					rdm->Data[0]=eeprom_read_byte((uint8_t*)EEPROM_LAMP_HOURS+3); //response with device label
-	// 					}
-	// 				respondMsg();
-	// 				break;
+	 			case LAMP_HOURS:
+					if (rdm->Cmd == SET_CMD)					//set Lamp Hours
+						{
+						eeprom_write_byte((uint8_t*)EEPROM_LAMP_HOURS,rdm->Data[3]);
+						eeprom_write_byte((uint8_t*)EEPROM_LAMP_HOURS+1,rdm->Data[2]);
+						eeprom_write_byte((uint8_t*)EEPROM_LAMP_HOURS+2,rdm->Data[1]);
+						eeprom_write_byte((uint8_t*)EEPROM_LAMP_HOURS+3,rdm->Data[0]);
+						}
+					else
+						{
+						rdm->PDLen= 4;
+						rdm->Data[3]=eeprom_read_byte((uint8_t*)EEPROM_LAMP_HOURS);
+						rdm->Data[2]=eeprom_read_byte((uint8_t*)EEPROM_LAMP_HOURS)+1;
+						rdm->Data[1]=eeprom_read_byte((uint8_t*)EEPROM_LAMP_HOURS)+2;
+						rdm->Data[0]=eeprom_read_byte((uint8_t*)EEPROM_LAMP_HOURS)+3; 
+						}					
+					respondMsg();
+					break;
 
 				default:
 					rdm->Data[0]=  (uint8_t)(NR_UNKNOWN_PID>>8); //response: PID not supported!
